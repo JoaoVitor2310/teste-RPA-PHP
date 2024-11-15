@@ -18,20 +18,15 @@ function acessarLoginPage()
     curl_setopt($ch, CURLOPT_COOKIEFILE, 'cookie.txt'); // Reutiliza cookies
 
     // Executa o curl
-    $response = curl_exec($ch);
-
+    $html = curl_exec($ch);
+    
     if (curl_errno($ch)) {
         echo 'Erro no cURL de página login: <br>' . curl_error($ch);
     }
-
+    
     curl_close($ch);
-
-    if (strpos($response, 'Sair') == true) { // Se tem o botão de sair, está logado
-        curl_close($ch);
-        return false;
-    }
-
-    return $response;
+    
+    return $html;
 }
 
 function realizarLogin($usuario, $senha, $html)
@@ -74,6 +69,7 @@ function realizarLogin($usuario, $senha, $html)
     // Fecha o cURL
     curl_close($ch);
 
+    echo 'Login realizado com sucesso';
     return $newHtml;
 }
 
@@ -87,14 +83,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit;
     }
 
-    $primeiroAcesso = acessarLoginPage();
+    $html = acessarLoginPage();
 
-    if ($primeiroAcesso) {
-        $login = realizarLogin($usuario, $senha, $primeiroAcesso);
-        echo 'Login realizado com sucesso';
-        exit;
+    if (strpos($html, 'Sair') == false) { // Se não tem o botão de sair, está deslogado
+        echo "Não está logado!<br>";
+        $html = realizarLogin($usuario, $senha, $html); // realiza o login
     }
-    
-    echo 'Já está logado';
+
+    echo $html;
+
     exit;
 }
