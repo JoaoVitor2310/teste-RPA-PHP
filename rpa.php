@@ -1,35 +1,31 @@
 <?php
 
-function acessarLoginPage()
+function fetchPage($url)
 {
-    $url_login = "https://sistema.7vitrines.com/login";
-
     // Inicializa o cURL
     $ch = curl_init();
 
-    // Configura o cURL para login
-    curl_setopt($ch, CURLOPT_URL, $url_login); // Define a URL
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Desabilita a verificação de certificados SSL, pois estava impedindo de acessar o site
+    // Configura o cURL
+    curl_setopt($ch, CURLOPT_URL, $url); // Define a URL
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Desabilita a verificação de certificados SSL
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Retorna o resultado como uma string
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Habilita o redirecionamento
+    curl_setopt($ch, CURLOPT_COOKIEJAR, 'cookie.txt');  // Reutiliza cookies de sessão
+    curl_setopt($ch, CURLOPT_COOKIEFILE, 'cookie.txt');
 
-    // Caso queira considerar o usuário já logado, basta utilizar esses cookies
-    curl_setopt($ch, CURLOPT_COOKIEJAR, 'cookie.txt');  // Armazena cookies de sessão
-    curl_setopt($ch, CURLOPT_COOKIEFILE, 'cookie.txt'); // Reutiliza cookies
-
-    // Executa o curl
+    // Executa o cURL
     $html = curl_exec($ch);
-    
+
     if (curl_errno($ch)) {
-        echo 'Erro no cURL de página login: <br>' . curl_error($ch);
+        echo 'Erro no cURL: <br>' . curl_error($ch);
     }
-    
+
     curl_close($ch);
-    
+
     return $html;
 }
 
-function realizarLogin($usuario, $senha, $html)
+function login($usuario, $senha, $html)
 {
     $url_login = "https://sistema.7vitrines.com/login";
 
@@ -43,7 +39,7 @@ function realizarLogin($usuario, $senha, $html)
 
     $ch = curl_init();
 
-    // Configura o cURL para a segunda requisição (POST) para enviar os dados de login
+    // Configura o cURL para a requisição POST de login
     curl_setopt($ch, CURLOPT_URL, $url_login); // URL de login
     curl_setopt($ch, CURLOPT_POST, true); // Define o método como POST
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
@@ -54,23 +50,44 @@ function realizarLogin($usuario, $senha, $html)
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Habilita o redirecionamento automático
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-    // Reutiliza cookies de sessão
     curl_setopt($ch, CURLOPT_COOKIEJAR, 'cookie.txt');
     curl_setopt($ch, CURLOPT_COOKIEFILE, 'cookie.txt');
 
-    // Executa a requisição POST para login
     $newHtml = curl_exec($ch);
 
     if (curl_errno($ch)) {
-        echo 'Erro no cURL de realizar login: <br>' . curl_error($ch);
+        echo 'Erro no cURL ao realizar login: <br>' . curl_error($ch);
     }
 
-    // Fecha o cURL
     curl_close($ch);
 
-    echo 'Login realizado com sucesso';
     return $newHtml;
+}
+
+function extractTableToJson($html)
+{
+    $dom = new DOMDocument();
+    @$dom->loadHTML($html); // Suprime warnings por HTML inválido
+
+    // Usa XPath para localizar as linhas da tabela
+    $xpath = new DOMXPath($dom);
+    $rows = $xpath->query('//table/tbody/tr');
+
+    $data = [];
+
+    // Laço para percorrer as linhas
+    foreach ($rows as $row) {
+        $cols = $row->getElementsByTagName('td');
+
+        $data[] = [
+            'ID' => $cols->item(0)->nodeValue,
+            'Empresa' => $cols->item(1)->nodeValue,
+            'Endereço' => $cols->item(2)->nodeValue,
+            'Referência' => $cols->item(3)->nodeValue,
+        ];
+    }
+
+    return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 }
 
 // Processa a requisição POST com as credenciais do usuário
@@ -83,14 +100,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit;
     }
 
-    $html = acessarLoginPage();
+    $html = fetchPage("https://sistema.7vitrines.com/login");
 
-    if (strpos($html, 'Sair') == false) { // Se não tem o botão de sair, está deslogado
-        echo "Não está logado!<br>";
-        $html = realizarLogin($usuario, $senha, $html); // realiza o login
+    if (strpos($html, 'Sair') === false) { // Se não tem a opção "Sair", não está logado
+        $html = login($usuario, $senha, $html);
     }
 
-    echo $html;
+    // Após o login, redireciona para a página /teste
+    $html = fetchPage("https://sistema.7vitrines.com/teste");
 
-    exit;
+    $json = extractTableToJson($html);
+    echo $json;
 }
