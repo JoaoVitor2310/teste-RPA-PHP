@@ -49,14 +49,18 @@ function login($usuario, $senha, $html) // Função para realizar o login
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Desabilita a verificação de certificado SSL
     curl_setopt($ch, CURLOPT_COOKIEJAR, 'cookie.txt'); // Armazena cookies recebidos em um arquivo
     curl_setopt($ch, CURLOPT_COOKIEFILE, 'cookie.txt'); // Reutiliza cookies armazenados previamente
-
+    
     $newHtml = curl_exec($ch); // Executa a requisição
-
+    
     if (curl_errno($ch)) { // Verifica se houve erro
         returnError('Erro no cURL ao realizar login: ' . curl_error($ch));
     }
-
+    
     curl_close($ch); // Fecha o cURL
+    
+    if (strpos($newHtml, 'These credentials do not match our records.') == true) { // Se aparecer essa mensagem, as credenciais estão incorretas
+        returnError('Usuário ou senha incorretos');
+    }
 
     return $newHtml; // Retorna o HTML
 }
@@ -102,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') { // Processa a requisição POST com 
 
     $html = fetchPage("https://sistema.7vitrines.com/login"); // Acessa a página de login
 
-    if (strpos($html, 'Sair') === false) { // Se não tem a opção "Sair", está deslogado
+    if (strpos($html, 'Sair') == false) { // Se não tem a opção "Sair", está deslogado
         $html = login($usuario, $senha, $html); // Realiza o login
     }
 
