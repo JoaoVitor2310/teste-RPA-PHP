@@ -115,6 +115,20 @@ if (isset($_POST["email"]) && isset($_POST["password"])) {
     $response = curl_exec($curl);
     // exit($response); 
 
+    // Validar
+    if (!$response) {
+        echo 'Erro cURL: ' . curl_error($curl);
+        $_SESSION['error_message'] = 'Erro inesperado. Tente novamente.';
+        header("Location: index.php");
+        exit();
+    }
+
+    if ($response == 'erro|Login ou senha invalida') {
+        $_SESSION['error_message'] = 'Usuário ou senha incorretos. Tente novamente.';
+        header("Location: index.php");
+        exit();
+    }
+
 
 
 
@@ -132,6 +146,7 @@ if (isset($_POST["email"]) && isset($_POST["password"])) {
 
     // 2 - Permitir todos os usuários para o produto
     foreach ($produtos as $produto) {
+        $produto = trim($produto);
         $produto = str_pad($produto, 6, "0", STR_PAD_LEFT);
         $curl = curl_init();
 
@@ -160,7 +175,7 @@ if (isset($_POST["email"]) && isset($_POST["password"])) {
         // die;
 
         if (!$response) {
-            $_SESSION['error_message'] = 'Erro ao autorizar usuários. Tente novamente.';
+            $_SESSION['error_message'] = 'Erro ao autorizar usuários no produto: ' . $produto . '. Tente novamente.';
             header("Location: index.php");
             exit();
         }

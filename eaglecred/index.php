@@ -32,9 +32,9 @@ if (isset($_SESSION['success_message'])) {
             <form action="./eagle.php" method="post">
                 <div class="d-flex flex-column align-items-center gap-2">
                     <h1 class="text-white">Automação Eaglecred</h1>
-                    <input value="CACI26" class="row form-control" type="text" name="email" placeholder="Email">
+                    <input class="row form-control" type="text" name="email" placeholder="Email">
                     <div class="input-group">
-                        <input value="Futuro@123" id="password" class="form-control" type="password" name="password"
+                        <input id="password" class="form-control" type="password" name="password"
                             placeholder="Senha">
                         <button class="btn btn-outline "
                             style="border-color: var(--bs-tertiary-bg); color: var(--bs-tertiary-bg);" type="button"
